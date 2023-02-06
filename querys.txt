@@ -1,0 +1,74 @@
+# QUERYS
+
+
+## TRANSFORMACION TABLAS
+
+- RENTAL_MASTER
+
+SELECT rental_id AS RENTALS, rental_date AS 'RENTAL DATE', rental.inventory_id AS 'INVENTORY ID', customer_id AS 'CUSTOMER ID', 
+	   return_date AS 'RETURN DATE', staff_id AS 'STAFF ID', title as TITLE, 
+       (DATEDIFF(return_date, rental_date) + 1) AS DAYS,
+       (rental_rate * (DATEDIFF(return_date, rental_date) + 1)) AS INCOME
+       
+FROM rental
+LEFT JOIN inventory ON inventory.inventory_id = rental.inventory_id
+LEFT JOIN films ON inventory.film_id = films.film_id
+;
+
+- CUSTOMER_MASTER
+
+SELECT customer.customer_id AS 'CUSTOMER ID', name AS 'NAME', lastname AS 'LAST NAME', telephone AS TELEPHONE, 
+	   mail AS EMAIL, round(sum((rental_rate * (DATEDIFF(return_date, rental_date) + 1))), 2) AS 'TOTAL SPENT',
+       GROUP_CONCAT(' ',title) AS 'FILMS RENTED'
+       
+FROM rental
+
+LEFT JOIN inventory ON inventory.inventory_id = rental.inventory_id
+LEFT JOIN films ON inventory.film_id = films.film_id
+LEFT JOIN customer ON customer.customer_id = rental.customer_id
+
+GROUP BY customer.customer_id, name , lastname, telephone, mail
+;
+
+INVENTORY_MASTER
+
+SELECT inventory.inventory_id AS 'INVENTORY ID', film_id AS 'FILM ID', store_id AS 'STORE ID', 
+		CASE
+        WHEN rental_date IS NOT NULL AND return_date = '' AND rental.inventory_id IS NOT NULL THEN 'NOT AVAILABLE'
+        ELSE 'AVAILABLE'
+    END AS AVAILABILITY
+
+FROM inventory
+
+LEFT JOIN rental ON rental.inventory_id = inventory.inventory_id
+;
+
+
+
+## CONSULTAS ESPECÍFICAS
+
+-CLIENTE QUE MAS RENTA
+
+SELECT  rental.customer_id, count(rental.customer_id) as Rentals
+FROM rental
+LEFT JOIN customer ON rental.customer_id = customer.customer_id
+GROUP BY rental.customer_id
+ORDER BY Rentals desc
+LIMIT 5
+
+
+-CLIENTE QUE MAS GASTA
+
+SELECT  `customer id`, round(sum(Income),2) as 'Total Spent'
+FROM rental_master
+GROUP BY `customer id`
+ORDER BY 'Total Spent' desc
+LIMIT 5
+
+-PELICULA MAS ALQUILADA
+
+SELECT title, count(title) as Alquileres
+FROM rental_master
+GROUP BY title
+ORDER BY Alquileres DESC
+LIMIT 5
